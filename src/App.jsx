@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { supabase } from './supabase.js';
 import { 
   Apple, 
   Beef, 
@@ -27,141 +28,119 @@ const CATEGORIES_ORDER = [
 ];
 
 const CATEGORY_STYLES = {
-  "פירות וירקות": {
-    bg: "bg-emerald-50 text-emerald-800 border-emerald-100",
-    text: "text-emerald-800",
-    border: "border-emerald-150",
-    badge: "bg-emerald-100/80 text-emerald-800",
-    buttonBg: "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white",
-    iconColor: "text-emerald-600",
-    hoverBg: "hover:bg-emerald-50/30",
-    icon: Apple
-  },
-  "בשר ודגים": {
-    bg: "bg-rose-50 text-rose-800 border-rose-100",
-    text: "text-rose-800",
-    border: "border-rose-150",
-    badge: "bg-rose-100/80 text-rose-800",
-    buttonBg: "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white",
-    iconColor: "text-rose-600",
-    hoverBg: "hover:bg-rose-50/30",
-    icon: Beef
-  },
-  "מזווה": {
-    bg: "bg-amber-50 text-amber-800 border-amber-100",
-    text: "text-amber-800",
-    border: "border-amber-150",
-    badge: "bg-amber-100/80 text-amber-800",
-    buttonBg: "bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white",
-    iconColor: "text-amber-600",
-    hoverBg: "hover:bg-amber-50/30",
-    icon: Package
-  },
-  "חומרי ניקוי": {
-    bg: "bg-sky-50 text-sky-800 border-sky-100",
-    text: "text-sky-800",
-    border: "border-sky-150",
-    badge: "bg-sky-100/80 text-sky-800",
-    buttonBg: "bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white",
-    iconColor: "text-sky-600",
-    hoverBg: "hover:bg-sky-50/30",
-    icon: Sparkles
-  },
-  "מוצרי חלב": {
-    bg: "bg-indigo-50 text-indigo-800 border-indigo-100",
-    text: "text-indigo-800",
-    border: "border-indigo-150",
-    badge: "bg-indigo-100/80 text-indigo-800",
-    buttonBg: "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white",
-    iconColor: "text-indigo-600",
-    hoverBg: "hover:bg-indigo-50/30",
-    icon: Milk
-  },
-  "יין ואלכוהול": {
-    bg: "bg-purple-50 text-purple-800 border-purple-100",
-    text: "text-purple-800",
-    border: "border-purple-150",
-    badge: "bg-purple-100/80 text-purple-800",
-    buttonBg: "bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white",
-    iconColor: "text-purple-600",
-    hoverBg: "hover:bg-purple-50/30",
-    icon: Wine
-  }
+  "פירות וירקות": { bg: "bg-emerald-50 text-emerald-800 border-emerald-100", text: "text-emerald-800", border: "border-emerald-150", badge: "bg-emerald-100/80 text-emerald-800", buttonBg: "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white", iconColor: "text-emerald-600", hoverBg: "hover:bg-emerald-50/30", icon: Apple },
+  "בשר ודגים": { bg: "bg-rose-50 text-rose-800 border-rose-100", text: "text-rose-800", border: "border-rose-150", badge: "bg-rose-100/80 text-rose-800", buttonBg: "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white", iconColor: "text-rose-600", hoverBg: "hover:bg-rose-50/30", icon: Beef },
+  "מזווה": { bg: "bg-amber-50 text-amber-800 border-amber-100", text: "text-amber-800", border: "border-amber-150", badge: "bg-amber-100/80 text-amber-800", buttonBg: "bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white", iconColor: "text-amber-600", hoverBg: "hover:bg-amber-50/30", icon: Package },
+  "חומרי ניקוי": { bg: "bg-sky-50 text-sky-800 border-sky-100", text: "text-sky-800", border: "border-sky-150", badge: "bg-sky-100/80 text-sky-800", buttonBg: "bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white", iconColor: "text-sky-600", hoverBg: "hover:bg-sky-50/30", icon: Sparkles },
+  "מוצרי חלב": { bg: "bg-indigo-50 text-indigo-800 border-indigo-100", text: "text-indigo-800", border: "border-indigo-150", badge: "bg-indigo-100/80 text-indigo-800", buttonBg: "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white", iconColor: "text-indigo-600", hoverBg: "hover:bg-indigo-50/30", icon: Milk },
+  "יין ואלכוהול": { bg: "bg-purple-50 text-purple-800 border-purple-100", text: "text-purple-800", border: "border-purple-150", badge: "bg-purple-100/80 text-purple-800", buttonBg: "bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white", iconColor: "text-purple-600", hoverBg: "hover:bg-purple-50/30", icon: Wine }
 };
 
-const INITIAL_ITEMS = [
-  { id: '1', name: 'עגבניות שרי', category: 'פירות וירקות', isPurchased: false },
-  { id: '2', name: 'מלפפונים', category: 'פירות וירקות', isPurchased: false },
-  { id: '3', name: 'בננות צהובות', category: 'פירות וירקות', isPurchased: true },
-  { id: '4', name: 'חזה עוף טרי', category: 'בשר ודגים', isPurchased: false },
-  { id: '5', name: 'פילה סלמון', category: 'בשר ודגים', isPurchased: false },
-  { id: '6', name: 'שמן זית', category: 'מזווה', isPurchased: true },
-  { id: '7', name: 'אורז בסמטי', category: 'מזווה', isPurchased: false },
-  { id: '8', name: 'טבליות למדיח', category: 'חומרי ניקוי', isPurchased: true },
-  { id: '9', name: 'נוזל כלים', category: 'חומרי ניקוי', isPurchased: false },
-  { id: '10', name: 'חלב 3%', category: 'מוצרי חלב', isPurchased: false },
-  { id: '11', name: 'גבינה צהובה', category: 'מוצרי חלב', isPurchased: false },
-  { id: '12', name: 'יוגורט יווני', category: 'מוצרי חלב', isPurchased: true },
-  { id: '13', name: 'יין אדום יבש', category: 'יין ואלכוהול', isPurchased: false }
-];
-
 function App() {
-  const [items, setItems] = useState(() => {
-    const saved = localStorage.getItem('family-shopping-list');
-    return saved ? JSON.parse(saved) : INITIAL_ITEMS;
-  });
-
+  // State is initially empty, waiting for Supabase
+  const [items, setItems] = useState([]);
   const [activeAddCategory, setActiveAddCategory] = useState(null);
   const [newItemName, setNewItemName] = useState('');
   
   const inputRef = useRef(null);
 
+  // 1. Fetching Data & Setting up Realtime Subscription
   useEffect(() => {
-    localStorage.setItem('family-shopping-list', JSON.stringify(items));
-  }, [items]);
+    const fetchItems = async () => {
+      const { data, error } = await supabase
+        .from('shopping_list')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching items:', error);
+        return;
+      }
 
+      if (data) {
+        // מיפוי השדות של מסד הנתונים למבנה שה-UI שלך מצפה לו
+        const formattedItems = data.map(row => ({
+          id: row.id,
+          name: row.item_name,
+          category: row.category,
+          isPurchased: row.is_purchased
+        }));
+        setItems(formattedItems);
+      }
+    };
+
+    // קריאה ראשונית בעליית הקומפוננטה
+    fetchItems();
+
+    // האזנה לעדכונים בזמן אמת
+    const channel = supabase
+      .channel('realtime_shopping_list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' }, () => {
+        fetchItems(); // רענון הרשימה בכל שינוי במסד
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // פוקוס אוטומטי על אינפוט ההוספה
   useEffect(() => {
     if (activeAddCategory && inputRef.current) {
       inputRef.current.focus();
     }
   }, [activeAddCategory]);
 
-  const togglePurchased = (id) => {
+  // 2. Database Mutations
+  const togglePurchased = async (id) => {
+    const itemToToggle = items.find(item => item.id === id);
+    if (!itemToToggle) return;
+
+    // עדכון אופטימי ב-UI לתגובה מהירה (לפני שהשרת עונה)
     setItems(prevItems => 
       prevItems.map(item => 
         item.id === id ? { ...item, isPurchased: !item.isPurchased } : item
       )
     );
+
+    // עדכון במסד הנתונים
+    await supabase
+      .from('shopping_list')
+      .update({ is_purchased: !itemToToggle.isPurchased })
+      .eq('id', id);
   };
 
-  const handleAddItem = (categoryName) => {
+  const handleAddItem = async (categoryName) => {
     if (!newItemName.trim()) return;
-    const newItem = {
-      id: Date.now().toString(),
-      name: newItemName.trim(),
-      category: categoryName,
-      isPurchased: false
-    };
-    setItems(prevItems => [...prevItems, newItem]);
+    
+    const nameToSave = newItemName.trim();
+    
+    // ניקוי הממשק מיד לתחושת מהירות
     setNewItemName('');
     setActiveAddCategory(null);
+
+    // הכנסה למסד הנתונים
+    await supabase.from('shopping_list').insert([{ 
+      item_name: nameToSave, 
+      category: categoryName 
+    }]);
   };
 
-  const deleteItem = (id) => {
+  const deleteItem = async (id) => {
+    // עדכון אופטימי (הסרה מה-UI מיד)
     setItems(prevItems => prevItems.filter(item => item.id !== id));
+    
+    // מחיקה ממסד הנתונים
+    await supabase.from('shopping_list').delete().eq('id', id);
   };
 
-  const clearPurchased = () => {
-    setItems(prevItems => prevItems.filter(item => !item.isPurchased));
+  const clearPurchased = async () => {
+    // מחיקה של כל מה שסומן כנקנה ממסד הנתונים
+    await supabase.from('shopping_list').delete().eq('is_purchased', true);
   };
 
-  const resetToDefault = () => {
-    if (window.confirm('האם אתה בטוח שברצונך לאפס את הרשימה לפריטי ברירת המחדל?')) {
-      setItems(INITIAL_ITEMS);
-      setActiveAddCategory(null);
-      setNewItemName('');
-    }
-  };
+  // הסרנו את פונקציית ה-resetToDefault כיוון שאין לה משמעות מול מסד נתונים אמיתי
 
   // Stats calculation
   const totalItemsCount = items.length;
@@ -211,13 +190,6 @@ function App() {
                   <span className="hidden sm:inline">נקה</span>
                 </button>
               )}
-              <button
-                onClick={resetToDefault}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all border border-slate-150 cursor-pointer"
-                title="איפוס פריטי מחדל"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
             </div>
           </div>
 

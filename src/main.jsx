@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase } from './supabase.js';
 import { Lock } from 'lucide-react';
-import App from './App'; // Assuming your current logic is in App.js
+import App from './App.jsx';
 
 export default function Main() {
   const [session, setSession] = useState(null);

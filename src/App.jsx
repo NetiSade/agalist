@@ -17,13 +17,15 @@ import {
   LogOut,
   Loader2,
   Droplets,
-  Tag
+  Tag,
+  Wheat
 } from 'lucide-react';
 
 const CATEGORIES_ORDER = [
   "פירות וירקות",
   "בשר, עוף, דגים",
   "מזווה",
+  "לחם ומאפים",
   "חומרי ניקוי",
   "היגיינה",
   "מוצרי חלב",
@@ -35,6 +37,7 @@ const CATEGORY_STYLES = {
   "פירות וירקות": { bg: "bg-emerald-50 text-emerald-800 border-emerald-100", text: "text-emerald-800", border: "border-emerald-150", badge: "bg-emerald-100/80 text-emerald-800", buttonBg: "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white", iconColor: "text-emerald-600", hoverBg: "hover:bg-emerald-50/30", icon: Apple },
   "בשר, עוף, דגים": { bg: "bg-rose-50 text-rose-800 border-rose-100", text: "text-rose-800", border: "border-rose-150", badge: "bg-rose-100/80 text-rose-800", buttonBg: "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white", iconColor: "text-rose-600", hoverBg: "hover:bg-rose-50/30", icon: Beef },
   "מזווה": { bg: "bg-amber-50 text-amber-800 border-amber-100", text: "text-amber-800", border: "border-amber-150", badge: "bg-amber-100/80 text-amber-800", buttonBg: "bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white", iconColor: "text-amber-600", hoverBg: "hover:bg-amber-50/30", icon: Package },
+  "לחם ומאפים": { bg: "bg-orange-50 text-orange-800 border-orange-100", text: "text-orange-800", border: "border-orange-150", badge: "bg-orange-100/80 text-orange-800", buttonBg: "bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white", iconColor: "text-orange-600", hoverBg: "hover:bg-orange-50/30", icon: Wheat },
   "חומרי ניקוי": { bg: "bg-sky-50 text-sky-800 border-sky-100", text: "text-sky-800", border: "border-sky-150", badge: "bg-sky-100/80 text-sky-800", buttonBg: "bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white", iconColor: "text-sky-600", hoverBg: "hover:bg-sky-50/30", icon: Sparkles },
   "היגיינה": { bg: "bg-teal-50 text-teal-800 border-teal-100", text: "text-teal-800", border: "border-teal-150", badge: "bg-teal-100/80 text-teal-800", buttonBg: "bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white", iconColor: "text-teal-600", hoverBg: "hover:bg-teal-50/30", icon: Droplets },
   "מוצרי חלב": { bg: "bg-indigo-50 text-indigo-800 border-indigo-100", text: "text-indigo-800", border: "border-indigo-150", badge: "bg-indigo-100/80 text-indigo-800", buttonBg: "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white", iconColor: "text-indigo-600", hoverBg: "hover:bg-indigo-50/30", icon: Milk },

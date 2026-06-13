@@ -42,7 +42,7 @@ const CATEGORY_STYLES = {
   "אחר": { bg: "bg-slate-50 text-slate-700 border-slate-100", text: "text-slate-700", border: "border-slate-150", badge: "bg-slate-100/80 text-slate-700", buttonBg: "bg-slate-600 hover:bg-slate-700 active:bg-slate-800 text-white", iconColor: "text-slate-500", hoverBg: "hover:bg-slate-50/30", icon: Tag }
 };
 
-function ShoppingList({ signOut }) {
+function ShoppingList({ signOut, user }) {
   // State is initially empty, waiting for Supabase
   const [items, setItems] = useState([]);
   const [activeAddCategory, setActiveAddCategory] = useState(null);
@@ -130,7 +130,8 @@ function ShoppingList({ signOut }) {
     // הכנסה למסד הנתונים
     await supabase.from('shopping_list').insert([{ 
       item_name: nameToSave, 
-      category: categoryName 
+      category: categoryName,
+      user_id: user.id
     }]);
   };
 
@@ -438,7 +439,7 @@ function App() {
     return <AuthPage />;
   }
 
-  return <ShoppingList signOut={signOut} />;
+  return <ShoppingList signOut={signOut} user={session.user} />;
 }
 
 export default App;

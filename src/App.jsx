@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase.js';
+import { useAuth } from './AuthContext.jsx';
+import AuthPage from './AuthPage.jsx';
 import { 
   Apple, 
   Beef, 
@@ -9,13 +11,11 @@ import {
   Wine, 
   Plus, 
   Trash2, 
-  RotateCcw, 
   X, 
-  CheckCircle2, 
-  Circle,
   ShoppingBag,
-  Info,
-  Check
+  Check,
+  LogOut,
+  Loader2
 } from 'lucide-react';
 
 const CATEGORIES_ORDER = [
@@ -36,7 +36,7 @@ const CATEGORY_STYLES = {
   "יין ואלכוהול": { bg: "bg-purple-50 text-purple-800 border-purple-100", text: "text-purple-800", border: "border-purple-150", badge: "bg-purple-100/80 text-purple-800", buttonBg: "bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white", iconColor: "text-purple-600", hoverBg: "hover:bg-purple-50/30", icon: Wine }
 };
 
-function App() {
+function ShoppingList({ signOut }) {
   // State is initially empty, waiting for Supabase
   const [items, setItems] = useState([]);
   const [activeAddCategory, setActiveAddCategory] = useState(null);
@@ -190,6 +190,15 @@ function App() {
                   <span className="hidden sm:inline">נקה</span>
                 </button>
               )}
+              <button
+                id="sign-out-btn"
+                onClick={signOut}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                title="יציאה"
+                aria-label="יציאה מהחשבון"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -398,6 +407,24 @@ function App() {
       </div>
     </div>
   );
+}
+
+function App() {
+  const { session, signOut } = useAuth();
+
+  if (session === undefined) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AuthPage />;
+  }
+
+  return <ShoppingList signOut={signOut} />;
 }
 
 export default App;

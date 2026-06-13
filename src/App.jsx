@@ -56,6 +56,7 @@ function ShoppingList({ signOut }) {
       const { data, error } = await supabase
         .from('shopping_list')
         .select('*')
+        .is('archived_at', null)
         .order('created_at', { ascending: true });
       
       if (error) {
@@ -137,13 +138,20 @@ function ShoppingList({ signOut }) {
     // עדכון אופטימי (הסרה מה-UI מיד)
     setItems(prevItems => prevItems.filter(item => item.id !== id));
     
-    // מחיקה ממסד הנתונים
-    await supabase.from('shopping_list').delete().eq('id', id);
+    // שמירה בבסיס הנתונים עם חותמת ארכיון (לא מוחקים!)
+    await supabase
+      .from('shopping_list')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id);
   };
 
   const clearPurchased = async () => {
-    // מחיקה של כל מה שסומן כנקנה ממסד הנתונים
-    await supabase.from('shopping_list').delete().eq('is_purchased', true);
+    // שמירה בבסיס הנתונים עם חותמת ארכיון במקום מחיקה
+    await supabase
+      .from('shopping_list')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('is_purchased', true)
+      .is('archived_at', null);
   };
 
   // הסרנו את פונקציית ה-resetToDefault כיוון שאין לה משמעות מול מסד נתונים אמיתי

@@ -345,11 +345,11 @@ function ShoppingList({ signOut, user }) {
               {purchasedItemsCount > 0 && (
                 <button
                   onClick={clearPurchased}
-                  className="px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-all flex items-center gap-1 border border-rose-100 cursor-pointer"
+                  className="px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 active:bg-rose-100 rounded-lg transition-all flex items-center gap-1 border border-rose-100 cursor-pointer"
                   title="נקה פריטים שנקנו"
+                  aria-label="נקה פריטים שנקנו"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">נקה</span>
                 </button>
               )}
               <button

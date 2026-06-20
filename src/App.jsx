@@ -123,14 +123,11 @@ function ShoppingList({ signOut, user }) {
     setViewportHeight(0);
   };
 
-  // פוקוס אוטומטי על אינפוט החיפוש – לאחר שאנימציית הפתיחה הסתיימה,
-  // כדי שתנועת החלון ופתיחת המקלדת לא יקרו יחד (חוויה רגועה יותר)
+  // פוקוס אוטומטי מיידי על אינפוט החיפוש בפתיחת החלון
   useEffect(() => {
-    if (!addModalCategory) return;
-    const t = setTimeout(() => {
-      if (inputRef.current) inputRef.current.focus();
-    }, 450);
-    return () => clearTimeout(t);
+    if (addModalCategory && inputRef.current) {
+      inputRef.current.focus();
+    }
   }, [addModalCategory]);
 
   // סגירה ב-Escape
@@ -529,7 +526,7 @@ function ShoppingList({ signOut, user }) {
             {/* Bottom sheet — pinned above the mobile keyboard via visualViewport */}
             <div
               dir="rtl"
-              className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-sheetUp"
+              className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
               style={{
                 bottom: keyboardInset,
                 maxHeight: keyboardInset > 0 && viewportHeight

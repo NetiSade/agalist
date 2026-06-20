@@ -123,11 +123,14 @@ function ShoppingList({ signOut, user }) {
     setViewportHeight(0);
   };
 
-  // פוקוס אוטומטי על אינפוט החיפוש בפתיחת החלון
+  // פוקוס אוטומטי על אינפוט החיפוש – לאחר שאנימציית הפתיחה הסתיימה,
+  // כדי שתנועת החלון ופתיחת המקלדת לא יקרו יחד (חוויה רגועה יותר)
   useEffect(() => {
-    if (addModalCategory && inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (!addModalCategory) return;
+    const t = setTimeout(() => {
+      if (inputRef.current) inputRef.current.focus();
+    }, 450);
+    return () => clearTimeout(t);
   }, [addModalCategory]);
 
   // סגירה ב-Escape
@@ -384,9 +387,8 @@ function ShoppingList({ signOut, user }) {
         <main className="flex-1 px-4 py-5 space-y-5 overflow-y-auto pb-12">
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <div className="h-full flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-              <span className="text-xs font-medium text-slate-400">טוען רשימה...</span>
             </div>
           ) : CATEGORIES_ORDER.map(categoryName => {
             const style = CATEGORY_STYLES[categoryName];
@@ -527,7 +529,7 @@ function ShoppingList({ signOut, user }) {
             {/* Bottom sheet — pinned above the mobile keyboard via visualViewport */}
             <div
               dir="rtl"
-              className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-sheetUp transition-[bottom,max-height] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+              className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-sheetUp"
               style={{
                 bottom: keyboardInset,
                 maxHeight: keyboardInset > 0 && viewportHeight

@@ -56,6 +56,10 @@ function ShoppingList({ signOut, user }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
+  // Visual-viewport tracking so the sheet sits above the mobile keyboard
+  const [keyboardInset, setKeyboardInset] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+
   const inputRef = useRef(null);
 
   // 1. Fetching Data & Setting up Realtime Subscription
@@ -112,6 +116,8 @@ function ShoppingList({ signOut, user }) {
     setAddModalCategory(null);
     setQuery('');
     setSuggestions([]);
+    setKeyboardInset(0);
+    setViewportHeight(0);
   };
 
   // פוקוס אוטומטי על אינפוט החיפוש בפתיחת החלון
@@ -127,6 +133,28 @@ function ShoppingList({ signOut, user }) {
     const onKey = (e) => { if (e.key === 'Escape') closeAddModal(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, [addModalCategory]);
+
+  // מעקב אחרי ה-visual viewport כדי שהחלון יישב מעל המקלדת במובייל
+  useEffect(() => {
+    if (!addModalCategory) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      // המרחק שהמקלדת "אוכלת" מתחתית מסך הפריסה
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardInset(inset);
+      setViewportHeight(vv.height);
+    };
+
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
   }, [addModalCategory]);
 
   // טעינת הצעות פופולריות לקטגוריה הפתוחה (סכום ה-count על פני כל ההיסטוריה)
@@ -480,14 +508,22 @@ function ShoppingList({ signOut, user }) {
 
         {/* Add-item Modal */}
         {addModalCategory && (
-          <div
-            className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-fadeIn"
-            onClick={closeAddModal}
-          >
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm animate-fadeIn"
+              onClick={closeAddModal}
+            />
+            {/* Bottom sheet — pinned above the mobile keyboard via visualViewport */}
             <div
               dir="rtl"
-              className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[80vh] animate-sheetUp"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-sheetUp"
+              style={{
+                bottom: keyboardInset,
+                maxHeight: keyboardInset > 0 && viewportHeight
+                  ? `${viewportHeight}px`
+                  : '85dvh'
+              }}
             >
               {/* Modal Header */}
               <div className={`px-5 py-4 border-b border-slate-100 flex items-center justify-between ${modalStyle.bg}`}>
@@ -531,7 +567,7 @@ function ShoppingList({ signOut, user }) {
               </form>
 
               {/* Suggestions list */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 {loadingSuggestions ? (
                   <div className="flex items-center justify-center py-10">
                     <Loader2 className="w-6 h-6 text-slate-300 animate-spin" />
@@ -580,7 +616,7 @@ function ShoppingList({ signOut, user }) {
                 )}
               </div>
             </div>
-          </div>
+          </>
         )}
 
       </div>

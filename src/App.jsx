@@ -46,9 +46,39 @@ const CATEGORY_STYLES = {
   "אחר": { bg: "bg-slate-50 text-slate-700 border-slate-100", text: "text-slate-700", border: "border-slate-150", badge: "bg-slate-100/80 text-slate-700", buttonBg: "bg-slate-600 hover:bg-slate-700 active:bg-slate-800 text-white", iconColor: "text-slate-500", hoverBg: "hover:bg-slate-50/30", icon: Tag }
 };
 
+// Shimmer placeholder shown on first load while items are fetched
+function CategorySkeleton({ rows = 3 }) {
+  return (
+    <section className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-3.5 border-b border-slate-100/80 flex items-center justify-between bg-slate-50/60">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg shimmer" />
+          <div className="w-24 h-3.5 rounded-full shimmer" />
+          <div className="w-12 h-4 rounded-full shimmer" />
+        </div>
+        <div className="w-7 h-7 rounded-xl shimmer" />
+      </div>
+      {/* Rows */}
+      <div className="divide-y divide-slate-100/70">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3.5 px-4 py-3.5">
+            <div className="w-6.5 h-6.5 rounded-full shimmer flex-shrink-0" />
+            <div
+              className="h-3.5 rounded-full shimmer"
+              style={{ width: `${55 - i * 12}%` }}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ShoppingList({ signOut, user }) {
   // State is initially empty, waiting for Supabase
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Add-item modal state
   const [addModalCategory, setAddModalCategory] = useState(null);
@@ -73,6 +103,7 @@ function ShoppingList({ signOut, user }) {
 
       if (error) {
         console.error('Error fetching items:', error);
+        setLoading(false);
         return;
       }
 
@@ -87,6 +118,7 @@ function ShoppingList({ signOut, user }) {
         }));
         setItems(formattedItems);
       }
+      setLoading(false);
     };
 
     // קריאה ראשונית בעליית הקומפוננטה
@@ -323,7 +355,9 @@ function ShoppingList({ signOut, user }) {
                 </h1>
               </div>
               <p className="text-xs text-slate-500 mt-1 font-medium">
-                {missingItemsCount === 0 && totalItemsCount > 0 ? (
+                {loading ? (
+                  <span className="text-slate-400">טוען רשימה...</span>
+                ) : missingItemsCount === 0 && totalItemsCount > 0 ? (
                   <span className="text-emerald-600 font-bold flex items-center gap-1">
                      הכול מוכן! 🌟 כל הפריטים נקנו
                   </span>
@@ -378,7 +412,14 @@ function ShoppingList({ signOut, user }) {
         {/* Categories & Items Scroll View */}
         <main className="flex-1 px-4 py-5 space-y-5 overflow-y-auto pb-12">
 
-          {CATEGORIES_ORDER.map(categoryName => {
+          {loading ? (
+            <>
+              <CategorySkeleton rows={3} />
+              <CategorySkeleton rows={2} />
+              <CategorySkeleton rows={4} />
+              <CategorySkeleton rows={2} />
+            </>
+          ) : CATEGORIES_ORDER.map(categoryName => {
             const style = CATEGORY_STYLES[categoryName];
             const Icon = style.icon;
 
@@ -517,7 +558,7 @@ function ShoppingList({ signOut, user }) {
             {/* Bottom sheet — pinned above the mobile keyboard via visualViewport */}
             <div
               dir="rtl"
-              className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-sheetUp"
+              className="fixed left-1/2 -translate-x-1/2 w-full max-w-md z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden animate-sheetUp transition-[bottom,max-height] duration-200 ease-out"
               style={{
                 bottom: keyboardInset,
                 maxHeight: keyboardInset > 0 && viewportHeight
@@ -577,6 +618,7 @@ function ShoppingList({ signOut, user }) {
                     {/* Add brand-new item that isn't among the suggestions */}
                     {trimmedQuery && !queryMatchesExisting && (
                       <button
+                        onPointerDown={(e) => e.preventDefault()}
                         onClick={() => addFromModal(trimmedQuery)}
                         className={`w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.99] ${modalStyle.buttonBg}`}
                       >
@@ -588,6 +630,7 @@ function ShoppingList({ signOut, user }) {
                     {filteredSuggestions.map(s => (
                       <button
                         key={s.name}
+                        onPointerDown={(e) => e.preventDefault()}
                         onClick={() => addFromModal(s.name)}
                         className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 border border-slate-100 rounded-xl transition-all cursor-pointer active:scale-[0.99] group"
                       >

@@ -309,7 +309,11 @@ function ShoppingList({ signOut, user }) {
               <p className="text-xs text-slate-500 mt-1 font-medium">
                 {loading ? (
                   <span className="text-slate-400">טוען רשימה...</span>
-                ) : missingItemsCount === 0 && totalItemsCount > 0 ? (
+                ) : totalItemsCount === 0 ? (
+                  <span>
+                    הרשימה ריקה — הוסיפו פריט ראשון עם <span className="font-bold">+</span>
+                  </span>
+                ) : missingItemsCount === 0 ? (
                   <span className="text-emerald-600 font-bold flex items-center gap-1">
                      הכול מוכן! 🌟 כל הפריטים נקנו
                   </span>
@@ -481,11 +485,12 @@ function ShoppingList({ signOut, user }) {
                     </div>
                   ))}
 
-                  {/* Empty state within category */}
+                  {/* Empty state within category — a truly empty category invites
+                      adding a first item; a fully-purchased one celebrates */}
                   {(totalCount === 0 || missingCount === 0) && (
                     <div className="px-4 py-4.5 text-center bg-slate-50/20 flex items-center justify-center gap-2">
                       <span className="text-xs font-semibold text-slate-400/80 tracking-wide bg-slate-100/80 border border-slate-200/30 px-3 py-1 rounded-full">
-                        אין פריטים חסרים
+                        {totalCount === 0 ? 'אין פריטים עדיין — הוסיפו עם +' : 'אין פריטים חסרים'}
                       </span>
                     </div>
                   )}
@@ -495,13 +500,6 @@ function ShoppingList({ signOut, user }) {
             );
           })}
         </main>
-
-        {/* Footer Brand Info */}
-        <footer className="py-4 border-t border-slate-100/60 bg-slate-50/50 text-center">
-          <p className="text-[11px] text-slate-400 font-medium">
-            Agalist • מעוצב עבור מובייל 📱
-          </p>
-        </footer>
 
         {/* Add-item Modal */}
         {addModalCategory && (

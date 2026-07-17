@@ -2,13 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase.js';
 import { useAuth } from './AuthContext.jsx';
 import AuthPage from './AuthPage.jsx';
+import { useCategories } from './hooks/useCategories.js';
+import { getCategoryStyle } from './constants/categoryStyles.js';
+import CategoryManager from './components/CategoryManager.jsx';
 import {
-  Apple,
-  Beef,
-  Package,
-  Sparkles,
-  Milk,
-  Wine,
   Plus,
   Trash2,
   X,
@@ -16,40 +13,25 @@ import {
   Check,
   LogOut,
   Loader2,
-  Droplets,
-  Tag,
-  Wheat,
-  Search
+  Search,
+  Settings
 } from 'lucide-react';
-
-const CATEGORIES_ORDER = [
-  "פירות וירקות",
-  "בשר, עוף, דגים",
-  "מזווה",
-  "לחם ומאפים",
-  "חומרי ניקוי",
-  "היגיינה",
-  "מוצרי חלב",
-  "יין ואלכוהול",
-  "אחר"
-];
-
-const CATEGORY_STYLES = {
-  "פירות וירקות": { bg: "bg-emerald-50 text-emerald-800 border-emerald-100", text: "text-emerald-800", border: "border-emerald-150", badge: "bg-emerald-100/80 text-emerald-800", buttonBg: "bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white", iconColor: "text-emerald-600", hoverBg: "hover:bg-emerald-50/30", icon: Apple },
-  "בשר, עוף, דגים": { bg: "bg-rose-50 text-rose-800 border-rose-100", text: "text-rose-800", border: "border-rose-150", badge: "bg-rose-100/80 text-rose-800", buttonBg: "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white", iconColor: "text-rose-600", hoverBg: "hover:bg-rose-50/30", icon: Beef },
-  "מזווה": { bg: "bg-amber-50 text-amber-800 border-amber-100", text: "text-amber-800", border: "border-amber-150", badge: "bg-amber-100/80 text-amber-800", buttonBg: "bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white", iconColor: "text-amber-600", hoverBg: "hover:bg-amber-50/30", icon: Package },
-  "לחם ומאפים": { bg: "bg-orange-50 text-orange-800 border-orange-100", text: "text-orange-800", border: "border-orange-150", badge: "bg-orange-100/80 text-orange-800", buttonBg: "bg-orange-600 hover:bg-orange-700 active:bg-orange-800 text-white", iconColor: "text-orange-600", hoverBg: "hover:bg-orange-50/30", icon: Wheat },
-  "חומרי ניקוי": { bg: "bg-sky-50 text-sky-800 border-sky-100", text: "text-sky-800", border: "border-sky-150", badge: "bg-sky-100/80 text-sky-800", buttonBg: "bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white", iconColor: "text-sky-600", hoverBg: "hover:bg-sky-50/30", icon: Sparkles },
-  "היגיינה": { bg: "bg-teal-50 text-teal-800 border-teal-100", text: "text-teal-800", border: "border-teal-150", badge: "bg-teal-100/80 text-teal-800", buttonBg: "bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white", iconColor: "text-teal-600", hoverBg: "hover:bg-teal-50/30", icon: Droplets },
-  "מוצרי חלב": { bg: "bg-indigo-50 text-indigo-800 border-indigo-100", text: "text-indigo-800", border: "border-indigo-150", badge: "bg-indigo-100/80 text-indigo-800", buttonBg: "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white", iconColor: "text-indigo-600", hoverBg: "hover:bg-indigo-50/30", icon: Milk },
-  "יין ואלכוהול": { bg: "bg-purple-50 text-purple-800 border-purple-100", text: "text-purple-800", border: "border-purple-150", badge: "bg-purple-100/80 text-purple-800", buttonBg: "bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white", iconColor: "text-purple-600", hoverBg: "hover:bg-purple-50/30", icon: Wine },
-  "אחר": { bg: "bg-slate-50 text-slate-700 border-slate-100", text: "text-slate-700", border: "border-slate-150", badge: "bg-slate-100/80 text-slate-700", buttonBg: "bg-slate-600 hover:bg-slate-700 active:bg-slate-800 text-white", iconColor: "text-slate-500", hoverBg: "hover:bg-slate-50/30", icon: Tag }
-};
 
 function ShoppingList({ signOut, user }) {
   // State is initially empty, waiting for Supabase
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Per-user dynamic categories from the DB
+  const {
+    categories,
+    loadingCategories,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    moveCategory
+  } = useCategories(user);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
 
   // Add-item modal state
   const [addModalCategory, setAddModalCategory] = useState(null);
@@ -79,11 +61,11 @@ function ShoppingList({ signOut, user }) {
       }
 
       if (data) {
-        // מיפוי השדות של מסד הנתונים למבנה שה-UI שלך מצפה לו
+        // Map the DB fields to the shape the UI expects
         const formattedItems = data.map(row => ({
           id: row.id,
           name: row.item_name,
-          category: row.category,
+          categoryId: row.category_id,
           isPurchased: row.is_purchased,
           count: row.count ?? 1
         }));
@@ -92,27 +74,27 @@ function ShoppingList({ signOut, user }) {
       setLoading(false);
     };
 
-    // קריאה ראשונית בעליית הקומפוננטה
+    // Initial fetch on mount
     fetchItems();
 
-    // האזנה לעדכונים בזמן אמת
+    // Subscribe to realtime updates
     const channel = supabase
       .channel('realtime_shopping_list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list' }, () => {
-        fetchItems(); // רענון הרשימה בכל שינוי במסד
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list', filter: `user_id=eq.${user.id}` }, () => {
+        fetchItems(); // Refresh the list on any DB change
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user.id]);
 
-  // 2. Add-item modal helpers
-  const openAddModal = (categoryName) => {
+  // 2. Add-item modal helpers — addModalCategory holds the full category object
+  const openAddModal = (category) => {
     setQuery('');
     setSuggestions([]);
-    setAddModalCategory(categoryName);
+    setAddModalCategory(category);
   };
 
   const closeAddModal = () => {
@@ -123,14 +105,14 @@ function ShoppingList({ signOut, user }) {
     setViewportHeight(0);
   };
 
-  // פוקוס אוטומטי מיידי על אינפוט החיפוש בפתיחת החלון
+  // Immediately autofocus the search input when the modal opens
   useEffect(() => {
     if (addModalCategory && inputRef.current) {
       inputRef.current.focus();
     }
   }, [addModalCategory]);
 
-  // סגירה ב-Escape
+  // Close on Escape
   useEffect(() => {
     if (!addModalCategory) return;
     const onKey = (e) => { if (e.key === 'Escape') closeAddModal(); };
@@ -138,14 +120,14 @@ function ShoppingList({ signOut, user }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [addModalCategory]);
 
-  // מעקב אחרי ה-visual viewport כדי שהחלון יישב מעל המקלדת במובייל
+  // Track the visual viewport so the sheet sits above the mobile keyboard
   useEffect(() => {
     if (!addModalCategory) return;
     const vv = window.visualViewport;
     if (!vv) return;
 
     const update = () => {
-      // המרחק שהמקלדת "אוכלת" מתחתית מסך הפריסה
+      // How much of the layout viewport's bottom the keyboard "eats"
       const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       setKeyboardInset(inset);
       setViewportHeight(vv.height);
@@ -160,7 +142,7 @@ function ShoppingList({ signOut, user }) {
     };
   }, [addModalCategory]);
 
-  // טעינת הצעות פופולריות לקטגוריה הפתוחה (סכום ה-count על פני כל ההיסטוריה)
+  // Load popular suggestions for the open category (count summed across all history)
   useEffect(() => {
     if (!addModalCategory) return;
     let cancelled = false;
@@ -170,7 +152,7 @@ function ShoppingList({ signOut, user }) {
       const { data, error } = await supabase
         .from('shopping_list')
         .select('item_name, count')
-        .eq('category', addModalCategory);
+        .eq('category_id', addModalCategory.id);
 
       if (cancelled) return;
       if (error) {
@@ -180,7 +162,7 @@ function ShoppingList({ signOut, user }) {
         return;
       }
 
-      // צבירה לפי שם פריט (אחרי trim) וסיכום ה-count = פופולריות
+      // Aggregate by trimmed item name; the summed count = popularity
       const popularityByName = new Map();
       (data || []).forEach(row => {
         const name = (row.item_name || '').trim();
@@ -205,30 +187,30 @@ function ShoppingList({ signOut, user }) {
     const itemToToggle = items.find(item => item.id === id);
     if (!itemToToggle) return;
 
-    // עדכון אופטימי ב-UI לתגובה מהירה (לפני שהשרת עונה)
+    // Optimistic UI update for fast feedback (before the server responds)
     setItems(prevItems =>
       prevItems.map(item =>
         item.id === id ? { ...item, isPurchased: !item.isPurchased } : item
       )
     );
 
-    // עדכון במסד הנתונים
+    // Persist to the database
     await supabase
       .from('shopping_list')
       .update({ is_purchased: !itemToToggle.isPurchased })
       .eq('id', id);
   };
 
-  // הוספת פריט: אם קיים כבר פריט באותו שם וקטגוריה (כולל פריטים בארכיון) –
-  // משחזרים אותו, מעלים את ה-count ומסמנים כלא-נקנה. אחרת יוצרים שורה חדשה.
-  const addItem = async (categoryName, rawName) => {
+  // Add item: if an item with the same name and category already exists (including
+  // archived ones) — restore it, bump its count and mark it unpurchased. Otherwise insert a new row.
+  const addItem = async (category, rawName) => {
     const name = (rawName || '').trim();
     if (!name) return;
 
     const { data: existing, error } = await supabase
       .from('shopping_list')
       .select('*')
-      .eq('category', categoryName)
+      .eq('category_id', category.id)
       .eq('item_name', name);
 
     if (error) {
@@ -236,7 +218,7 @@ function ShoppingList({ signOut, user }) {
       return;
     }
 
-    // מעדיפים שורה פעילה; אחרת משחזרים שורה מהארכיון
+    // Prefer an active row; otherwise restore an archived one
     const match = existing && (existing.find(r => r.archived_at === null) || existing[0]);
 
     if (match) {
@@ -251,26 +233,25 @@ function ShoppingList({ signOut, user }) {
     } else {
       await supabase.from('shopping_list').insert([{
         item_name: name,
-        category: categoryName,
+        category_id: category.id,
         user_id: user.id,
         count: 1
       }]);
     }
   };
 
-  // הוספה מתוך החלון – נשארים פתוחים כדי לאפשר הוספת כמה פריטים ברצף
+  // Add from the modal — it stays open to allow adding several items in a row
   const addFromModal = async (name) => {
-    const categoryName = addModalCategory;
-    await addItem(categoryName, name);
+    await addItem(addModalCategory, name);
     setQuery('');
     if (inputRef.current) inputRef.current.focus();
   };
 
   const deleteItem = async (id) => {
-    // עדכון אופטימי (הסרה מה-UI מיד)
+    // Optimistic update (remove from the UI immediately)
     setItems(prevItems => prevItems.filter(item => item.id !== id));
 
-    // שמירה בבסיס הנתונים עם חותמת ארכיון (לא מוחקים!)
+    // Persist with an archive timestamp (never hard-delete!)
     await supabase
       .from('shopping_list')
       .update({ archived_at: new Date().toISOString() })
@@ -278,7 +259,7 @@ function ShoppingList({ signOut, user }) {
   };
 
   const clearPurchased = async () => {
-    // שמירה בבסיס הנתונים עם חותמת ארכיון במקום מחיקה
+    // Archive with a timestamp instead of deleting
     await supabase
       .from('shopping_list')
       .update({ archived_at: new Date().toISOString() })
@@ -298,7 +279,7 @@ function ShoppingList({ signOut, user }) {
   // Purchased (checked) items remain suggestable (tapping re-adds and marks them unpurchased).
   const uncheckedNamesInCategory = new Set(
     items
-      .filter(item => item.category === addModalCategory && !item.isPurchased)
+      .filter(item => item.categoryId === addModalCategory?.id && !item.isPurchased)
       .map(item => (item.name || '').trim())
   );
   const availableSuggestions = suggestions.filter(s => !uncheckedNamesInCategory.has(s.name));
@@ -306,7 +287,7 @@ function ShoppingList({ signOut, user }) {
     ? availableSuggestions.filter(s => s.name.includes(trimmedQuery))
     : availableSuggestions;
   const queryMatchesExisting = suggestions.some(s => s.name === trimmedQuery);
-  const modalStyle = addModalCategory ? CATEGORY_STYLES[addModalCategory] : null;
+  const modalStyle = addModalCategory ? getCategoryStyle(addModalCategory) : null;
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 font-sans flex justify-center">
@@ -353,6 +334,14 @@ function ShoppingList({ signOut, user }) {
                 </button>
               )}
               <button
+                onClick={() => setShowCategoryManager(true)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                title="ניהול קטגוריות"
+                aria-label="ניהול קטגוריות"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              <button
                 id="sign-out-btn"
                 onClick={signOut}
                 className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
@@ -383,15 +372,14 @@ function ShoppingList({ signOut, user }) {
         {/* Categories & Items Scroll View */}
         <main className="flex-1 px-4 py-5 space-y-5 overflow-y-auto pb-12">
 
-          {loading ? (
+          {(loading || loadingCategories) ? (
             <div className="h-full flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
             </div>
-          ) : CATEGORIES_ORDER.map(categoryName => {
-            const style = CATEGORY_STYLES[categoryName];
-            const Icon = style.icon;
+          ) : categories.map(category => {
+            const { Icon, ...style } = getCategoryStyle(category);
 
-            const categoryItems = items.filter(item => item.category === categoryName);
+            const categoryItems = items.filter(item => item.categoryId === category.id);
             const missingItems = categoryItems.filter(item => !item.isPurchased);
             const purchasedItems = categoryItems.filter(item => item.isPurchased);
 
@@ -400,7 +388,7 @@ function ShoppingList({ signOut, user }) {
 
             return (
               <section
-                key={categoryName}
+                key={category.id}
                 className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden transition-all hover:shadow-sm"
               >
                 {/* Category Header */}
@@ -410,7 +398,7 @@ function ShoppingList({ signOut, user }) {
                       <Icon className={`w-4.5 h-4.5 ${style.iconColor}`} />
                     </div>
                     <h2 className={`text-[15px] font-bold ${style.text}`}>
-                      {categoryName}
+                      {category.name}
                     </h2>
                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold shadow-3xs ${style.badge}`}>
                       {missingCount} חסרים
@@ -418,7 +406,7 @@ function ShoppingList({ signOut, user }) {
                   </div>
 
                   <button
-                    onClick={() => openAddModal(categoryName)}
+                    onClick={() => openAddModal(category)}
                     className="p-1.5 rounded-xl border bg-white hover:bg-slate-50 text-slate-600 border-slate-200 shadow-3xs active:scale-95 transition-all cursor-pointer"
                     aria-label="הוסף פריט לקטגוריה"
                   >
@@ -538,10 +526,10 @@ function ShoppingList({ signOut, user }) {
               <div className={`px-5 py-4 border-b border-slate-100 flex items-center justify-between ${modalStyle.bg}`}>
                 <div className="flex items-center gap-2.5">
                   <div className="p-1.5 rounded-lg bg-white/90 shadow-2xs">
-                    {(() => { const I = modalStyle.icon; return <I className={`w-4.5 h-4.5 ${modalStyle.iconColor}`} />; })()}
+                    {(() => { const I = modalStyle.Icon; return <I className={`w-4.5 h-4.5 ${modalStyle.iconColor}`} />; })()}
                   </div>
                   <div>
-                    <h3 className={`text-[15px] font-bold ${modalStyle.text}`}>הוספה ל{addModalCategory}</h3>
+                    <h3 className={`text-[15px] font-bold ${modalStyle.text}`}>הוספה ל{addModalCategory.name}</h3>
                     <p className="text-[11px] text-slate-500 font-medium mt-0.5">בחר מההצעות או הקלד פריט חדש</p>
                   </div>
                 </div>
@@ -569,7 +557,7 @@ function ShoppingList({ signOut, user }) {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={`חיפוש או הוספת פריט ל${addModalCategory}...`}
+                    placeholder={`חיפוש או הוספת פריט ל${addModalCategory.name}...`}
                     className="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-slate-300 focus:border-slate-300 focus:bg-white text-slate-800 placeholder:text-slate-400 transition-all"
                   />
                 </div>
@@ -628,6 +616,18 @@ function ShoppingList({ signOut, user }) {
               </div>
             </div>
           </>
+        )}
+
+        {/* Category Manager Modal */}
+        {showCategoryManager && (
+          <CategoryManager
+            categories={categories}
+            onClose={() => setShowCategoryManager(false)}
+            addCategory={addCategory}
+            updateCategory={updateCategory}
+            deleteCategory={deleteCategory}
+            moveCategory={moveCategory}
+          />
         )}
 
       </div>

@@ -13,7 +13,35 @@ import {
   Egg,
   Coffee,
   Candy,
-  Baby
+  Baby,
+  Banana,
+  Cherry,
+  Grape,
+  Citrus,
+  Salad,
+  Sandwich,
+  Pizza,
+  Croissant,
+  Cookie,
+  CakeSlice,
+  IceCreamCone,
+  CupSoda,
+  Beer,
+  Ham,
+  Drumstick,
+  Soup,
+  Popcorn,
+  Snowflake,
+  Nut,
+  Leaf,
+  Utensils,
+  PawPrint,
+  Pill,
+  Bath,
+  Shirt,
+  Flower2,
+  Lightbulb,
+  Gift
 } from 'lucide-react';
 
 // Tailwind requires literal class strings in code, so this map lives here;
@@ -32,21 +60,57 @@ export const COLOR_STYLES = {
 };
 
 export const CATEGORY_ICONS = {
+  // Fruits & vegetables
   Apple,
-  Beef,
-  Package,
-  Wheat,
-  Sparkles,
-  Droplets,
-  Milk,
-  Wine,
-  Tag,
+  Banana,
+  Cherry,
+  Grape,
+  Citrus,
   Carrot,
+  Salad,
+  Leaf,
+  // Protein & dairy
+  Beef,
   Fish,
   Egg,
-  Coffee,
+  Ham,
+  Drumstick,
+  Milk,
+  // Bread, pantry & prepared food
+  Wheat,
+  Croissant,
+  Sandwich,
+  Pizza,
+  Soup,
+  Nut,
+  Package,
+  Utensils,
+  // Snacks & sweets
   Candy,
-  Baby
+  Cookie,
+  CakeSlice,
+  IceCreamCone,
+  Popcorn,
+  // Drinks
+  Coffee,
+  CupSoda,
+  Wine,
+  Beer,
+  // Frozen
+  Snowflake,
+  // Household & personal care
+  Sparkles,
+  Droplets,
+  Bath,
+  Pill,
+  Shirt,
+  Lightbulb,
+  // Other
+  Baby,
+  PawPrint,
+  Flower2,
+  Gift,
+  Tag
 };
 
 export const COLOR_KEYS = Object.keys(COLOR_STYLES);

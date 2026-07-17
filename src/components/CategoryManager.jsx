@@ -50,7 +50,7 @@ function CategoryEditor({ initial, onSave, onCancel }) {
       </div>
 
       {/* Icon picker */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto overscroll-contain">
         {ICON_KEYS.map(key => {
           const IconOption = CATEGORY_ICONS[key];
           return (
@@ -102,6 +102,21 @@ export default function CategoryManager({
   const [editingId, setEditingId] = useState(null); // category id | 'new' | null
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [newDefaults, setNewDefaults] = useState(null);
+
+  // Preselect a random color/icon for a new category, preferring ones
+  // no existing category uses yet (falls back to the full set when exhausted)
+  const pickNewDefaults = () => {
+    const usedColors = new Set(categories.map(c => c.color));
+    const usedIcons = new Set(categories.map(c => c.icon));
+    const freeColors = COLOR_KEYS.filter(k => !usedColors.has(k));
+    const freeIcons = ICON_KEYS.filter(k => !usedIcons.has(k));
+    const randomFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    return {
+      color: randomFrom(freeColors.length ? freeColors : COLOR_KEYS),
+      icon: randomFrom(freeIcons.length ? freeIcons : ICON_KEYS)
+    };
+  };
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -248,6 +263,7 @@ export default function CategoryManager({
           {/* Add new category */}
           {editingId === 'new' ? (
             <CategoryEditor
+              initial={newDefaults}
               onSave={async (name, color, icon) => {
                 const result = await addCategory(name, color, icon);
                 if (!result?.error) setEditingId(null);
@@ -257,7 +273,10 @@ export default function CategoryManager({
             />
           ) : (
             <button
-              onClick={() => setEditingId('new')}
+              onClick={() => {
+                setNewDefaults(pickNewDefaults());
+                setEditingId('new');
+              }}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 transition-all cursor-pointer active:scale-[0.99]"
             >
               <Plus className="w-4 h-4" />

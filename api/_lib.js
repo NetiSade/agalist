@@ -33,7 +33,10 @@ export function getSupabase() {
 
 // The list belongs to a single account; resolve its auth user id per request.
 export async function getUserId(supabase) {
-  const email = process.env.AGALIST_USER_EMAIL || 'netisade@gmail.com';
+  const email = process.env.AGALIST_USER_EMAIL;
+  if (!email) {
+    throw new Error('AGALIST_USER_EMAIL is not configured (required - set it in the Vercel project env vars, no fallback account)');
+  }
   const { data, error } = await supabase.auth.admin.listUsers({ perPage: 100 });
   if (error) throw error;
   const user = data.users.find(u => u.email === email);

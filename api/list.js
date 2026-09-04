@@ -1,6 +1,8 @@
 import { checkAuth, getSupabase, getUserId } from './_lib.js';
 
 // GET /api/list — every active section with its items and their states.
+// Purchased items are included with purchased: true until they are cleared in the app.
+// Pass ?include=archived to also return cleared items, each flagged archived: true.
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'method not allowed' });
   if (!checkAuth(req, res)) return;
@@ -8,6 +10,7 @@ export default async function handler(req, res) {
   try {
     const supabase = getSupabase();
     const userId = await getUserId(supabase);
+    const includeArchived = String(req.query.include || '').split(',').includes('archived');
 
     const { data: categories, error: catError } = await supabase
       .from('categories')
@@ -18,12 +21,13 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: true });
     if (catError) throw catError;
 
-    const { data: items, error: itemError } = await supabase
+    let itemsQuery = supabase
       .from('shopping_list')
-      .select('id, item_name, category_id, is_purchased, count')
+      .select('id, item_name, category_id, is_purchased, count, archived_at')
       .eq('user_id', userId)
-      .is('archived_at', null)
       .order('created_at', { ascending: true });
+    if (!includeArchived) itemsQuery = itemsQuery.is('archived_at', null);
+    const { data: items, error: itemError } = await itemsQuery;
     if (itemError) throw itemError;
 
     // Same convention as the app: the protected default ("אחר") is pinned to the bottom.
@@ -40,6 +44,7 @@ export default async function handler(req, res) {
             name: item.item_name,
             purchased: item.is_purchased,
             count: item.count ?? 1,
+            ...(includeArchived ? { archived: item.archived_at !== null } : {}),
           })),
       })),
     });

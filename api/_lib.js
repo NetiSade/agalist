@@ -4,23 +4,6 @@ import { timingSafeEqual } from 'node:crypto';
 // Shared helpers for the agalist API routes.
 // Files under api/ prefixed with "_" are not routed as endpoints.
 
-export function checkAuth(req, res) {
-  const expected = process.env.AGALIST_API_TOKEN;
-  if (!expected) {
-    res.status(500).json({ error: 'AGALIST_API_TOKEN is not configured' });
-    return false;
-  }
-  const header = req.headers.authorization || '';
-  const provided = header.startsWith('Bearer ') ? header.slice('Bearer '.length) : '';
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    res.status(401).json({ error: 'unauthorized' });
-    return false;
-  }
-  return true;
-}
-
 export function getSupabase() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,15 +14,47 @@ export function getSupabase() {
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
 
-// The list belongs to a single account; resolve its auth user id per request.
-export async function getUserId(supabase) {
-  const email = process.env.AGALIST_USER_EMAIL;
-  if (!email) {
-    throw new Error('AGALIST_USER_EMAIL is not configured (required - set it in the Vercel project env vars, no fallback account)');
+function safeEqual(a, b) {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ba.length === bb.length && timingSafeEqual(ba, bb);
+}
+
+// Resolve the caller to a Supabase user id. Two bearer-token paths:
+//
+// 1. End users: `Authorization: Bearer <Supabase access token>` - the JWT a
+//    signed-in user gets from supabase-js (signInWithPassword, etc.). Verified
+//    server-side with auth.getUser(); the user id comes from the verified
+//    token, never from the request. This is what makes the API multi-user.
+//
+// 2. Owner automation: `Authorization: Bearer <AGALIST_API_TOKEN>` - a static
+//    token for the deployment owner's own scripts. It maps to exactly one
+//    account: the UUID in AGALIST_USER_ID. It cannot act as any other user,
+//    and no endpoint accepts a user_id from the caller.
+//
+// Returns the user id, or null after writing an error response.
+export async function resolveAuth(req, res, supabase) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice('Bearer '.length) : '';
+  if (!token) {
+    res.status(401).json({ error: 'missing bearer token' });
+    return null;
   }
-  const { data, error } = await supabase.auth.admin.listUsers({ perPage: 100 });
-  if (error) throw error;
-  const user = data.users.find(u => u.email === email);
-  if (!user) throw new Error(`no auth user with email ${email}`);
-  return user.id;
+
+  const ownerToken = process.env.AGALIST_API_TOKEN;
+  if (ownerToken && safeEqual(token, ownerToken)) {
+    const ownerId = process.env.AGALIST_USER_ID;
+    if (!ownerId) {
+      res.status(500).json({ error: 'AGALIST_USER_ID is not configured' });
+      return null;
+    }
+    return ownerId;
+  }
+
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data.user) {
+    res.status(401).json({ error: 'invalid or expired token' });
+    return null;
+  }
+  return data.user.id;
 }

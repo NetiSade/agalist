@@ -5,6 +5,11 @@ import { checkAuth, getSupabase, getUserId } from './_lib.js';
 // DELETE /api/items  { id | name [, category] }         — remove an item (archives it, like the app's clear)
 //
 // "category" is the section name (e.g. "מקרר"); "category_id" also works.
+//
+// Every mutation also appends to the purchase_events log (see
+// supabase/migrations/20260904000000_purchase_events.sql). Logging is
+// best-effort: a failed insert (e.g. migration not run yet) is logged to the
+// console and never changes the endpoint's response.
 export default async function handler(req, res) {
   if (!checkAuth(req, res)) return;
 
@@ -19,6 +24,21 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
+  }
+}
+
+async function logEvent(supabase, userId, { itemName, category, eventType, countDelta = null }) {
+  try {
+    const { error } = await supabase.from('purchase_events').insert([{
+      user_id: userId,
+      item_name: itemName,
+      category,
+      event_type: eventType,
+      count_delta: countDelta,
+    }]);
+    if (error) console.error('purchase_events insert failed:', error.message);
+  } catch (err) {
+    console.error('purchase_events insert failed:', err.message);
   }
 }
 
@@ -60,6 +80,12 @@ async function addItem(req, res, supabase, userId) {
       .update({ count, is_purchased: false, archived_at: null })
       .eq('id', match.id);
     if (updateError) throw updateError;
+    await logEvent(supabase, userId, {
+      itemName: name,
+      category: cat.name,
+      eventType: 'added',
+      countDelta: 1,
+    });
     return res.status(200).json({ id: match.id, name, category: cat.name, restored: true, count });
   }
 
@@ -69,6 +95,12 @@ async function addItem(req, res, supabase, userId) {
     .select('id')
     .single();
   if (insertError) throw insertError;
+  await logEvent(supabase, userId, {
+    itemName: name,
+    category: cat.name,
+    eventType: 'added',
+    countDelta: 1,
+  });
   res.status(201).json({ id: inserted.id, name, category: cat.name, restored: false, count: 1 });
 }
 
@@ -106,6 +138,27 @@ async function resolveItemId(req, res, supabase, userId) {
   return data[0].id;
 }
 
+// Fetch the row (name + section) so the purchase log can record what happened.
+async function fetchItemForLog(supabase, userId, itemId) {
+  const { data: item, error } = await supabase
+    .from('shopping_list')
+    .select('item_name, category_id')
+    .eq('id', itemId)
+    .eq('user_id', userId)
+    .single();
+  if (error) throw error;
+  let category = null;
+  if (item.category_id) {
+    const { data: cat } = await supabase
+      .from('categories')
+      .select('name')
+      .eq('id', item.category_id)
+      .limit(1);
+    category = cat && cat[0] ? cat[0].name : null;
+  }
+  return { itemName: item.item_name, category };
+}
+
 async function updateItem(req, res, supabase, userId) {
   const { purchased } = req.body || {};
   if (typeof purchased !== 'boolean') {
@@ -115,12 +168,19 @@ async function updateItem(req, res, supabase, userId) {
   const itemId = await resolveItemId(req, res, supabase, userId);
   if (!itemId) return;
 
+  const { itemName, category } = await fetchItemForLog(supabase, userId, itemId);
+
   const { error: updateError } = await supabase
     .from('shopping_list')
     .update({ is_purchased: purchased })
     .eq('id', itemId)
     .eq('user_id', userId);
   if (updateError) throw updateError;
+  await logEvent(supabase, userId, {
+    itemName,
+    category,
+    eventType: purchased ? 'marked_bought' : 'marked_missing',
+  });
   res.status(200).json({ id: itemId, purchased });
 }
 
@@ -131,11 +191,18 @@ async function deleteItem(req, res, supabase, userId) {
   const itemId = await resolveItemId(req, res, supabase, userId);
   if (!itemId) return;
 
+  const { itemName, category } = await fetchItemForLog(supabase, userId, itemId);
+
   const { error: updateError } = await supabase
     .from('shopping_list')
     .update({ archived_at: new Date().toISOString() })
     .eq('id', itemId)
     .eq('user_id', userId);
   if (updateError) throw updateError;
+  await logEvent(supabase, userId, {
+    itemName,
+    category,
+    eventType: 'deleted',
+  });
   res.status(200).json({ id: itemId, archived: true });
 }

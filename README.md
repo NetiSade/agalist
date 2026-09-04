@@ -1,6 +1,6 @@
 # agalist
 
-A shared shopping-list web app for one household. Hebrew UI, sections (per store if you like), bought/missing states, and realtime sync across devices.
+A multi-user shopping-list web app: sign up, and every account gets its own private list. Hebrew UI, sections (per store if you like), bought/missing states, and realtime sync across devices. Usable through the UI or the HTTP API below.
 
 Stack: Vite + React 19, Supabase (Postgres + Auth + Realtime), deployed on Vercel.
 
@@ -32,6 +32,8 @@ You need your own Supabase project. Set these env vars (locally in `.env`, on Ve
 
 The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied.
 
+Heads up: the core schema (categories, shopping_list), RLS policies, RPCs (`seed_default_categories`, `delete_category`) and the signup seed trigger are not exported to this repo yet - only the purchase-events migration is. Export them from your Supabase project if you're setting up from scratch.
+
 ## HTTP API
 
 The app itself talks to Supabase directly; these endpoints exist for external callers (scripts, assistants, integrations). All data access is scoped to the authenticated user - the service-role key bypasses RLS, so every query filters `user_id` explicitly, and no endpoint accepts a `user_id` from the caller.
@@ -47,7 +49,7 @@ The app itself talks to Supabase directly; these endpoints exist for external ca
    const token = data.session.access_token;
    ```
 
-   The API verifies it per request with `auth.getUser()` and uses the id from the verified token. Tokens expire (about an hour); refresh with supabase-js. Any registered user of the deployment can use the API this way and only ever sees their own data.
+   The API verifies it per request with `auth.getUser()` and uses the id from the verified token. Tokens expire (about an hour); refresh with supabase-js. Anyone who signs up in the app (or directly against Supabase Auth) can use the API this way and only ever sees their own data.
 
 2. **Owner automation token.** If the deployment sets `AGALIST_API_TOKEN` + `AGALIST_USER_ID`, that static token authenticates as exactly that one account. Meant for the owner's scripts (no interactive login available). It cannot act as any other user.
 

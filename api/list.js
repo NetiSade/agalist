@@ -3,6 +3,21 @@ import { checkAuth, getSupabase, getUserId } from './_lib.js';
 // GET /api/list — every active section with its items and their states.
 // Purchased items are included with purchased: true until they are cleared in the app.
 // Pass ?include=archived to also return cleared items, each flagged archived: true.
+//
+// Items always carry their timestamp columns. The select is '*' and the known
+// timestamp names are passed through only when the row actually has them, so a
+// schema that later adds updated_at / purchased_at exposes them automatically.
+
+const TIMESTAMP_FIELDS = ['created_at', 'updated_at', 'purchased_at', 'archived_at'];
+
+function timestamps(row) {
+  const out = {};
+  for (const key of TIMESTAMP_FIELDS) {
+    if (key in row) out[key] = row[key];
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'method not allowed' });
   if (!checkAuth(req, res)) return;
@@ -14,7 +29,7 @@ export default async function handler(req, res) {
 
     const { data: categories, error: catError } = await supabase
       .from('categories')
-      .select('id, name, sort_order, is_protected')
+      .select('id, name, sort_order, is_protected, created_at')
       .eq('user_id', userId)
       .is('archived_at', null)
       .order('sort_order', { ascending: true })
@@ -23,7 +38,7 @@ export default async function handler(req, res) {
 
     let itemsQuery = supabase
       .from('shopping_list')
-      .select('id, item_name, category_id, is_purchased, count, archived_at')
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
     if (!includeArchived) itemsQuery = itemsQuery.is('archived_at', null);
@@ -37,6 +52,7 @@ export default async function handler(req, res) {
       sections: sorted.map(cat => ({
         id: cat.id,
         name: cat.name,
+        created_at: cat.created_at,
         items: items
           .filter(item => item.category_id === cat.id)
           .map(item => ({
@@ -44,6 +60,7 @@ export default async function handler(req, res) {
             name: item.item_name,
             purchased: item.is_purchased,
             count: item.count ?? 1,
+            ...timestamps(item),
             ...(includeArchived ? { archived: item.archived_at !== null } : {}),
           })),
       })),

@@ -1,4 +1,4 @@
-import { checkAuth, getSupabase, getUserId } from './_lib.js';
+import { resolveAuth, getSupabase } from './_lib.js';
 
 // POST   /api/items  { name, category }                 — add an item to a section
 // PATCH  /api/items  { id | name [, category], purchased } — mark an item bought/missing
@@ -11,11 +11,10 @@ import { checkAuth, getSupabase, getUserId } from './_lib.js';
 // best-effort: a failed insert (e.g. migration not run yet) is logged to the
 // console and never changes the endpoint's response.
 export default async function handler(req, res) {
-  if (!checkAuth(req, res)) return;
-
   try {
     const supabase = getSupabase();
-    const userId = await getUserId(supabase);
+    const userId = await resolveAuth(req, res, supabase);
+    if (!userId) return;
 
     if (req.method === 'POST') return await addItem(req, res, supabase, userId);
     if (req.method === 'PATCH') return await updateItem(req, res, supabase, userId);

@@ -2,6 +2,7 @@ import { checkAuth, getSupabase, getUserId } from './_lib.js';
 
 // POST   /api/items  { name, category }                 — add an item to a section
 // PATCH  /api/items  { id | name [, category], purchased } — mark an item bought/missing
+// DELETE /api/items  { id | name [, category] }         — remove an item (archives it, like the app's clear)
 //
 // "category" is the section name (e.g. "מקרר"); "category_id" also works.
 export default async function handler(req, res) {
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') return await addItem(req, res, supabase, userId);
     if (req.method === 'PATCH') return await updateItem(req, res, supabase, userId);
+    if (req.method === 'DELETE') return await deleteItem(req, res, supabase, userId);
     res.status(405).json({ error: 'method not allowed' });
   } catch (error) {
     console.error(error);
@@ -70,32 +72,48 @@ async function addItem(req, res, supabase, userId) {
   res.status(201).json({ id: inserted.id, name, category: cat.name, restored: false, count: 1 });
 }
 
+async function resolveItemId(req, res, supabase, userId) {
+  const { id, name } = req.body || {};
+  if (id) return id;
+  if (!name || !name.trim()) {
+    res.status(400).json({ error: 'id or name is required' });
+    return null;
+  }
+  let query = supabase
+    .from('shopping_list')
+    .select('id')
+    .eq('user_id', userId)
+    .is('archived_at', null)
+    .eq('item_name', name.trim());
+  if (req.body.category || req.body.category_id) {
+    const cat = await resolveCategory(supabase, userId, req.body);
+    if (!cat) {
+      res.status(404).json({ error: 'category not found' });
+      return null;
+    }
+    query = query.eq('category_id', cat.id);
+  }
+  const { data, error } = await query.limit(2);
+  if (error) throw error;
+  if (data.length === 0) {
+    res.status(404).json({ error: 'item not found' });
+    return null;
+  }
+  if (data.length > 1) {
+    res.status(409).json({ error: 'multiple items match; pass id or category' });
+    return null;
+  }
+  return data[0].id;
+}
+
 async function updateItem(req, res, supabase, userId) {
-  const { id, name, purchased } = req.body || {};
+  const { purchased } = req.body || {};
   if (typeof purchased !== 'boolean') {
     return res.status(400).json({ error: 'purchased (boolean) is required' });
   }
 
-  let itemId = id;
-  if (!itemId) {
-    if (!name || !name.trim()) return res.status(400).json({ error: 'id or name is required' });
-    let query = supabase
-      .from('shopping_list')
-      .select('id')
-      .eq('user_id', userId)
-      .is('archived_at', null)
-      .eq('item_name', name.trim());
-    if (req.body.category || req.body.category_id) {
-      const cat = await resolveCategory(supabase, userId, req.body);
-      if (!cat) return res.status(404).json({ error: 'category not found' });
-      query = query.eq('category_id', cat.id);
-    }
-    const { data, error } = await query.limit(2);
-    if (error) throw error;
-    if (data.length === 0) return res.status(404).json({ error: 'item not found' });
-    if (data.length > 1) return res.status(409).json({ error: 'multiple items match; pass id or category' });
-    itemId = data[0].id;
-  }
+  const itemId = await resolveItemId(req, res, supabase, userId);
+  if (!itemId) return;
 
   const { error: updateError } = await supabase
     .from('shopping_list')
@@ -104,4 +122,20 @@ async function updateItem(req, res, supabase, userId) {
     .eq('user_id', userId);
   if (updateError) throw updateError;
   res.status(200).json({ id: itemId, purchased });
+}
+
+// DELETE removes an item the same way the app's clear does: it archives the row
+// (archived_at), so it disappears from the default list but stays in history
+// (GET /api/list?include=archived) and can be restored by re-adding it.
+async function deleteItem(req, res, supabase, userId) {
+  const itemId = await resolveItemId(req, res, supabase, userId);
+  if (!itemId) return;
+
+  const { error: updateError } = await supabase
+    .from('shopping_list')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', itemId)
+    .eq('user_id', userId);
+  if (updateError) throw updateError;
+  res.status(200).json({ id: itemId, archived: true });
 }

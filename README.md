@@ -1,6 +1,8 @@
 # agalist
 
-A multi-user shopping-list web app. Every account gets its own private list, synced in realtime across devices. Hebrew UI.
+A multi-user shopping-list web app. The name is the Hebrew word agala (עגלה, shopping cart) plus the English "list". Every account gets its own private list, synced in realtime across devices. Hebrew UI.
+
+The list is organized into sections you name yourself, so that while walking through the supermarket, everything located in the same area of the store sits in the same section of the list - you shop section by section, without backtracking.
 
 Features:
 

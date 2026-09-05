@@ -28,7 +28,7 @@ You need your own Supabase project. Set these env vars (locally in `.env`, on Ve
 | `VITE_SUPABASE_ANON_KEY` | frontend | safe to expose; RLS enforces access |
 | `SUPABASE_SERVICE_ROLE_KEY` | API only | server-side only, never in the frontend |
 | `AGALIST_API_TOKEN` | API (optional) | static token for the owner's own automation |
-| `AGALIST_USER_ID` | API (optional) | your Supabase auth user UUID (Authentication -> Users); required if `AGALIST_API_TOKEN` is set |
+| `AGALIST_OWNER_USER_ID` | API (optional) | your Supabase auth user UUID (Authentication -> Users); required if `AGALIST_API_TOKEN` is set |
 
 The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied.
 
@@ -51,7 +51,7 @@ The app itself talks to Supabase directly; these endpoints exist for external ca
 
    The API verifies it per request with `auth.getUser()` and uses the id from the verified token. Tokens expire (about an hour); refresh with supabase-js. Anyone who signs up in the app (or directly against Supabase Auth) can use the API this way and only ever sees their own data.
 
-2. **Owner automation token.** If the deployment sets `AGALIST_API_TOKEN` + `AGALIST_USER_ID`, that static token authenticates as exactly that one account. Meant for the owner's scripts (no interactive login available). It cannot act as any other user.
+2. **Owner automation token.** If the deployment sets `AGALIST_API_TOKEN` + `AGALIST_OWNER_USER_ID`, that static token authenticates as exactly that one account. Meant for the owner's scripts (no interactive login available). It cannot act as any other user.
 
 ### Endpoints
 

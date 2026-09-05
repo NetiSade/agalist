@@ -29,7 +29,7 @@ function safeEqual(a, b) {
 //
 // 2. Owner automation: `Authorization: Bearer <AGALIST_API_TOKEN>` - a static
 //    token for the deployment owner's own scripts. It maps to exactly one
-//    account: the UUID in AGALIST_USER_ID. It cannot act as any other user,
+//    account: the UUID in AGALIST_OWNER_USER_ID. It cannot act as any other user,
 //    and no endpoint accepts a user_id from the caller.
 //
 // Returns the user id, or null after writing an error response.
@@ -43,9 +43,9 @@ export async function resolveAuth(req, res, supabase) {
 
   const ownerToken = process.env.AGALIST_API_TOKEN;
   if (ownerToken && safeEqual(token, ownerToken)) {
-    const ownerId = process.env.AGALIST_USER_ID;
+    const ownerId = process.env.AGALIST_OWNER_USER_ID;
     if (!ownerId) {
-      res.status(500).json({ error: 'AGALIST_USER_ID is not configured' });
+      res.status(500).json({ error: 'AGALIST_OWNER_USER_ID is not configured' });
       return null;
     }
     return ownerId;

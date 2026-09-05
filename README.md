@@ -4,6 +4,8 @@ A multi-user shopping-list web app: sign up, and every account gets its own priv
 
 Stack: Vite + React 19, Supabase (Postgres + Auth + Realtime), deployed on Vercel.
 
+This repo is public - `.env` is gitignored and no secrets are committed.
+
 ## Running locally
 
 ```bash
@@ -28,7 +30,7 @@ You need your own Supabase project. Set these env vars (locally in `.env`, on Ve
 | `VITE_SUPABASE_ANON_KEY` | frontend | safe to expose; RLS enforces access |
 | `SUPABASE_SERVICE_ROLE_KEY` | API only | server-side only, never in the frontend |
 
-The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied.
+The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied - paste it into the SQL Editor and run; it is idempotent, so re-runs are safe (policies are dropped and recreated, the table and index use `if not exists`).
 
 Heads up: the core schema (categories, shopping_list), RLS policies, RPCs (`seed_default_categories`, `delete_category`) and the signup seed trigger are not exported to this repo yet - only the purchase-events migration is. Export them from your Supabase project if you're setting up from scratch.
 
@@ -82,4 +84,4 @@ Every mutation is appended to the purchase log.
 
 ### Privacy note
 
-On a hosted deployment, data stays private to its registered users: API tokens are only ever issued by that deployment's Supabase Auth, each caller is resolved to their own user id, and the service-role key never leaves the server.
+On a hosted deployment, data stays private to its registered users: API tokens are only ever issued by that deployment's Supabase Auth, each caller is resolved to their own user id, and the service-role key never leaves the server. Row-level security is enabled on every table and every policy is owner-scoped (`auth.uid() = user_id`); an older deployment-wide policy on `shopping_list` was found and removed, and there is no UPDATE/DELETE policy on `purchase_events`, so the log stays append-only.

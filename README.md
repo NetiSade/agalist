@@ -27,8 +27,6 @@ You need your own Supabase project. Set these env vars (locally in `.env`, on Ve
 | `VITE_SUPABASE_URL` | frontend + API | your project URL |
 | `VITE_SUPABASE_ANON_KEY` | frontend | safe to expose; RLS enforces access |
 | `SUPABASE_SERVICE_ROLE_KEY` | API only | server-side only, never in the frontend |
-| `AGALIST_API_TOKEN` | API (optional) | static token for the owner's own automation |
-| `AGALIST_OWNER_USER_ID` | API (optional) | your Supabase auth user UUID (Authentication -> Users); required if `AGALIST_API_TOKEN` is set |
 
 The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied.
 
@@ -40,18 +38,37 @@ The app itself talks to Supabase directly; these endpoints exist for external ca
 
 ### Auth
 
-`Authorization: Bearer <token>`, two token kinds:
+`Authorization: Bearer <your Supabase access token>`. Sign in with supabase-js and use the session token:
 
-1. **Your Supabase access token (multi-user path).** Sign in with supabase-js and use the session token:
+```js
+const { data } = await supabase.auth.signInWithPassword({ email, password });
+const token = data.session.access_token;
+```
 
-   ```js
-   const { data } = await supabase.auth.signInWithPassword({ email, password });
-   const token = data.session.access_token;
-   ```
+The API verifies the token per request with `auth.getUser()` and uses the id from the verified token - never from the request. Anyone who signs up in the app (or directly against Supabase Auth) can use the API this way and only ever sees their own data. There is deliberately no static or superuser token: no credential exists that could expose someone else's list.
 
-   The API verifies it per request with `auth.getUser()` and uses the id from the verified token. Tokens expire (about an hour); refresh with supabase-js. Anyone who signs up in the app (or directly against Supabase Auth) can use the API this way and only ever sees their own data.
+### Connecting your own agent
 
-2. **Owner automation token.** If the deployment sets `AGALIST_API_TOKEN` + `AGALIST_OWNER_USER_ID`, that static token authenticates as exactly that one account. Meant for the owner's scripts (no interactive login available). It cannot act as any other user.
+Access tokens expire after about an hour, so automation should keep the **refresh token** and mint a fresh access token when needed:
+
+```js
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Once, interactively: sign in and store both tokens somewhere safe.
+const { data } = await supabase.auth.signInWithPassword({ email, password });
+// data.session.access_token  -> Authorization: Bearer <token>
+// data.session.refresh_token -> store securely
+
+// Later, headless: exchange the stored refresh token for a fresh session.
+const { data: refreshed, error } = await supabase.auth.refreshSession({
+  refresh_token: STORED_REFRESH_TOKEN,
+});
+// refreshed.session.access_token is your new Bearer token.
+```
+
+Important: Supabase **rotates the refresh token on every use** - persist `refreshed.session.refresh_token` each time, or the old one stops working (and a reused old one can invalidate the whole session family under reuse detection).
 
 ### Endpoints
 

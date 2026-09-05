@@ -1,4 +1,4 @@
-import { checkAuth, getSupabase, getUserId } from './_lib.js';
+import { resolveAuth, getSupabase } from './_lib.js';
 
 // GET /api/list — every active section with its items and their states.
 // Purchased items are included with purchased: true until they are cleared in the app.
@@ -20,11 +20,10 @@ function timestamps(row) {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'method not allowed' });
-  if (!checkAuth(req, res)) return;
-
   try {
     const supabase = getSupabase();
-    const userId = await getUserId(supabase);
+    const userId = await resolveAuth(req, res, supabase);
+    if (!userId) return;
     const includeArchived = String(req.query.include || '').split(',').includes('archived');
 
     const { data: categories, error: catError } = await supabase

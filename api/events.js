@@ -1,4 +1,4 @@
-import { checkAuth, getSupabase, getUserId } from './_lib.js';
+import { resolveAuth, getSupabase } from './_lib.js';
 
 // GET /api/events — the purchase log, newest first.
 // Every POST/PATCH/DELETE on /api/items appends here.
@@ -12,11 +12,10 @@ import { checkAuth, getSupabase, getUserId } from './_lib.js';
 // supabase/migrations/20260904000000_purchase_events.sql.
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'method not allowed' });
-  if (!checkAuth(req, res)) return;
-
   try {
     const supabase = getSupabase();
-    const userId = await getUserId(supabase);
+    const userId = await resolveAuth(req, res, supabase);
+    if (!userId) return;
 
     const parsed = parseInt(req.query.limit, 10);
     const limit = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), 500) : 100;

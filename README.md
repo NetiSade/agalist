@@ -1,10 +1,17 @@
 # agalist
 
-A multi-user shopping-list web app: sign up, and every account gets its own private list. Hebrew UI, sections (per store if you like), bought/missing states, and realtime sync across devices. Usable through the UI or the HTTP API below.
+A multi-user shopping-list web app. Every account gets its own private list, synced in realtime across devices. Hebrew UI.
+
+Features:
+
+- Sections you name yourself (per store, per category - whatever fits); default sections are seeded automatically on signup
+- Items with bought/missing states and a tap-to-clear flow; re-adding a known item restores it and bumps its count
+- Realtime sync across devices
+- Email + password signup and sign in
+- An append-only purchase log of every list change
+- An HTTP API for scripts, assistants and integrations - every caller only ever sees their own list
 
 Stack: Vite + React 19, Supabase (Postgres + Auth + Realtime), deployed on Vercel.
-
-This repo is public - `.env` is gitignored and no secrets are committed.
 
 ## Running locally
 
@@ -30,7 +37,7 @@ You need your own Supabase project. Set these env vars (locally in `.env`, on Ve
 | `VITE_SUPABASE_ANON_KEY` | frontend | safe to expose; RLS enforces access |
 | `SUPABASE_SERVICE_ROLE_KEY` | API only | server-side only, never in the frontend |
 
-The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied - paste it into the SQL Editor and run; it is idempotent, so re-runs are safe (policies are dropped and recreated, the table and index use `if not exists`).
+The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied (SQL Editor -> New query -> paste -> Run; idempotent, re-runs are safe).
 
 Heads up: the core schema (categories, shopping_list), RLS policies, RPCs (`seed_default_categories`, `delete_category`) and the signup seed trigger are not exported to this repo yet - only the purchase-events migration is. Export them from your Supabase project if you're setting up from scratch.
 
@@ -82,6 +89,6 @@ Important: Supabase **rotates the refresh token on every use** - persist `refres
 
 Every mutation is appended to the purchase log.
 
-### Privacy note
+### Privacy
 
-On a hosted deployment, data stays private to its registered users: API tokens are only ever issued by that deployment's Supabase Auth, each caller is resolved to their own user id, and the service-role key never leaves the server. Row-level security is enabled on every table and every policy is owner-scoped (`auth.uid() = user_id`); an older deployment-wide policy on `shopping_list` was found and removed, and there is no UPDATE/DELETE policy on `purchase_events`, so the log stays append-only.
+Data is private to each registered user: API tokens are only ever issued by the deployment's Supabase Auth, each caller is resolved to their own user id, and the service-role key never leaves the server. Row-level security is enabled on every table and every policy is owner-scoped (`auth.uid() = user_id`). The purchase log has no UPDATE or DELETE policy, so it stays append-only.

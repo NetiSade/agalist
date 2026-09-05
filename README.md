@@ -37,8 +37,6 @@ You need your own Supabase project. Set these env vars (locally in `.env`, on Ve
 | `VITE_SUPABASE_ANON_KEY` | frontend | safe to expose; RLS enforces access |
 | `SUPABASE_SERVICE_ROLE_KEY` | API only | server-side only, never in the frontend |
 
-The purchase-events log also needs `supabase/migrations/20260904000000_purchase_events.sql` applied (SQL Editor -> New query -> paste -> Run; idempotent, re-runs are safe).
-
 Heads up: the core schema (categories, shopping_list), RLS policies, RPCs (`seed_default_categories`, `delete_category`) and the signup seed trigger are not exported to this repo yet - only the purchase-events migration is. Export them from your Supabase project if you're setting up from scratch.
 
 ## HTTP API

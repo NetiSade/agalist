@@ -9,7 +9,6 @@ import {
   Plus,
   Trash2,
   X,
-  ShoppingBag,
   Check,
   LogOut,
   Loader2,
@@ -299,9 +298,13 @@ function ShoppingList({ signOut, user }) {
           <div className="flex justify-between items-center">
             <div>
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-                  <ShoppingBag className="w-5 h-5" />
-                </div>
+                <img
+                  src="/icon-512.png"
+                  alt=""
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-lg shrink-0"
+                />
                 <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">
                   Agalist
                 </h1>

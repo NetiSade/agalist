@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from './supabase.js';
-import { ShoppingBag, Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function AuthPage() {
   const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
@@ -57,9 +57,13 @@ export default function AuthPage() {
 
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 mb-4">
-            <ShoppingBag className="w-8 h-8 text-white" />
-          </div>
+          <img
+            src="/icon-512.png"
+            alt=""
+            width={64}
+            height={64}
+            className="inline-block w-16 h-16 rounded-2xl shadow-lg shadow-pink-200 mb-4"
+          />
           <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Agalist</h1>
           <p className="text-sm text-slate-500 mt-1 font-medium">רשימת הקניות שלך, מסונכרנת תמיד</p>
         </div>
@@ -159,7 +163,14 @@ export default function AuthPage() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6 font-medium">
-          Agalist • רשימת קניות משותפת 🛒
+          Agalist • רשימת קניות משותפת{' '}
+          <img
+            src="/icon-512.png"
+            alt=""
+            width={16}
+            height={16}
+            className="inline-block w-4 h-4 rounded align-text-bottom"
+          />
         </p>
       </div>
     </div>
